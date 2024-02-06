@@ -16,10 +16,14 @@ mod execution_state;
 mod state;
 
 #[derive(Debug)]
-pub(crate) struct VirtualMachine {
+pub(crate) struct VirtualMachine<VS, TP>
+where
+    VS: VariableStorage,
+    TP: TextProvider,
+{
     pub(crate) library: Library,
     pub(crate) program: Option<Program>,
-    pub(crate) variable_storage: Box<dyn VariableStorage>,
+    pub(crate) variable_storage: VS,
     pub(crate) line_hints_enabled: bool,
     current_node_name: Option<String>,
     state: State,
@@ -27,11 +31,15 @@ pub(crate) struct VirtualMachine {
     current_node: Option<Node>,
     batched_events: Vec<DialogueEvent>,
     line_parser: LineParser,
-    text_provider: Box<dyn TextProvider>,
+    text_provider: TP,
     language_code: Option<Language>,
 }
 
-impl Iterator for VirtualMachine {
+impl<VS, TP> Iterator for VirtualMachine<VS, TP>
+where
+    VS: VariableStorage,
+    TP: TextProvider,
+{
     type Item = Vec<DialogueEvent>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -41,12 +49,16 @@ impl Iterator for VirtualMachine {
     }
 }
 
-impl VirtualMachine {
+impl<VS, TP> VirtualMachine<VS, TP>
+where
+    VS: VariableStorage,
+    TP: TextProvider,
+{
     pub(crate) fn new(
         library: Library,
-        variable_storage: Box<dyn VariableStorage>,
+        variable_storage: VS,
         line_parser: LineParser,
-        text_provider: Box<dyn TextProvider>,
+        text_provider: TP,
     ) -> Self {
         Self {
             library,
@@ -64,20 +76,20 @@ impl VirtualMachine {
         }
     }
 
-    pub(crate) fn text_provider(&self) -> &dyn TextProvider {
-        self.text_provider.as_ref()
+    pub(crate) fn text_provider(&self) -> &TP {
+        &self.text_provider
     }
 
-    pub(crate) fn text_provider_mut(&mut self) -> &mut dyn TextProvider {
-        self.text_provider.as_mut()
+    pub(crate) fn text_provider_mut(&mut self) -> &mut TP {
+        &mut self.text_provider
     }
 
-    pub(crate) fn variable_storage(&self) -> &dyn VariableStorage {
-        self.variable_storage.as_ref()
+    pub(crate) fn variable_storage(&self) -> &VS {
+        &self.variable_storage
     }
 
-    pub(crate) fn variable_storage_mut(&mut self) -> &mut dyn VariableStorage {
-        self.variable_storage.as_mut()
+    pub(crate) fn variable_storage_mut(&mut self) -> &mut VS {
+        &mut self.variable_storage
     }
 
     pub(crate) fn set_language_code(&mut self, language_code: impl Into<Option<Language>>) {

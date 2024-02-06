@@ -16,11 +16,7 @@ pub type Result<T> = std::result::Result<T, VariableStorageError>;
 /// The interface has been changed to make use of our [`YarnValue`] type,
 /// which is more domain specific than the semi-corresponding `Convertible`.
 /// We also cannot use generics in this trait because we need to be able to clone this box.
-pub trait VariableStorage: Debug + Send + Sync {
-    /// Creates a shallow clone of this variable storage, i.e. a clone that
-    /// shares the same underlying storage and will thus be perfectly in sync
-    /// with the original instance.
-    fn clone_shallow(&self) -> Box<dyn VariableStorage>;
+pub trait VariableStorage: Debug + Send + Sync + Clone {
     /// Sets the value of a variable. Must fail with a [`VariableStorageError::InvalidVariableName`] if the variable name does not start with a `$`.
     fn set(&mut self, name: String, value: YarnValue) -> Result<()>;
     /// Gets the value of a variable. Must fail with a [`VariableStorageError::InvalidVariableName`] if the variable name does not start with a `$`.
@@ -39,14 +35,6 @@ pub trait VariableStorage: Debug + Send + Sync {
     fn clear(&mut self);
 }
 
-impl Extend<(String, YarnValue)> for Box<dyn VariableStorage> {
-    fn extend<T: IntoIterator<Item = (String, YarnValue)>>(&mut self, iter: T) {
-        let hash_map = iter.into_iter().collect();
-        VariableStorage::extend(self.as_mut(), hash_map)
-            .unwrap_or_else(|e| panic!("Failed to extend variable storage with values: {e}",));
-    }
-}
-
 #[allow(missing_docs)]
 #[derive(Debug, Error)]
 pub enum VariableStorageError {
@@ -58,12 +46,6 @@ pub enum VariableStorageError {
     InternalError {
         error: Box<dyn std::error::Error + Send + Sync>,
     },
-}
-
-impl Clone for Box<dyn VariableStorage> {
-    fn clone(&self) -> Self {
-        self.clone_shallow()
-    }
 }
 
 /// A simple concrete implementation of [`VariableStorage`] that keeps all variables in memory.
@@ -78,10 +60,6 @@ impl MemoryVariableStorage {
 }
 
 impl VariableStorage for MemoryVariableStorage {
-    fn clone_shallow(&self) -> Box<dyn VariableStorage> {
-        Box::new(self.clone())
-    }
-
     fn set(&mut self, name: String, value: YarnValue) -> Result<()> {
         Self::validate_name(&name)?;
         self.0.write().unwrap().insert(name, value);
@@ -123,6 +101,23 @@ impl MemoryVariableStorage {
             Err(VariableStorageError::InvalidVariableName {
                 name: name.to_string(),
             })
+        }
+    }
+}
+
+impl Extend<(String, YarnValue)> for MemoryVariableStorage {
+    fn extend<T: IntoIterator<Item = (String, YarnValue)>>(&mut self, iter: T) {
+        // Here, we directly manipulate the internal storage of MemoryVariableStorage
+        let mut storage = self.0.write().unwrap();
+        for (name, value) in iter {
+            // Assuming validate_name is a function that validates variable names,
+            // and you might want to handle errors differently here
+            match Self::validate_name(&name) {
+                Ok(_) => {
+                    storage.insert(name, value);
+                }
+                Err(e) => panic!("Failed to extend variable storage with values: {e}"),
+            }
         }
     }
 }

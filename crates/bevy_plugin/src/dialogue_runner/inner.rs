@@ -6,14 +6,22 @@ pub(crate) fn inner_dialogue_runner_plugin(_app: &mut App) {}
 /// Proxy for some functionality of the [`Dialogue`] used by [`DialogueRunner`].
 /// Constructed by [`DialogueRunner::inner`]. Serves advanced use cases.
 #[derive(Debug)]
-pub struct InnerDialogue<'a>(pub(crate) &'a Dialogue);
+pub struct InnerDialogue<'a, VS: VariableStorage, TP: TextProvider>(
+    pub(crate) &'a Dialogue<VS, TP>,
+);
 
 /// Mutable proxy for some functionality of the [`Dialogue`] used by [`DialogueRunner`].
 /// Constructed by [`DialogueRunner::inner_mut`]. Serves advanced use cases.
 #[derive(Debug)]
-pub struct InnerDialogueMut<'a>(pub(crate) &'a mut Dialogue);
+pub struct InnerDialogueMut<'a, VS: VariableStorage, TP: TextProvider>(
+    pub(crate) &'a mut Dialogue<VS, TP>,
+);
 
-impl<'a> InnerDialogue<'a> {
+impl<'a, VS, TP> InnerDialogue<'a, VS, TP>
+where
+    VS: VariableStorage,
+    TP: TextProvider,
+{
     /// Proxy for [`Dialogue::node_names`].
     pub fn node_names(&self) -> impl Iterator<Item = &str> {
         self.0.node_names().unwrap()
@@ -33,7 +41,11 @@ impl<'a> InnerDialogue<'a> {
     }
 }
 
-impl<'a> InnerDialogueMut<'a> {
+impl<'a, VS, TP> InnerDialogueMut<'a, VS, TP>
+where
+    VS: VariableStorage,
+    TP: TextProvider,
+{
     /// Proxy for [`Dialogue::node_names`].
     pub fn node_names(&self) -> impl Iterator<Item = &str> {
         self.0.node_names().unwrap()

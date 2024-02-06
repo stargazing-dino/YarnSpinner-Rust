@@ -9,7 +9,7 @@ pub use self::{
     localized_line::LocalizedLine,
 };
 use crate::commands::TaskFinishedIndicator;
-use crate::line_provider::LineAssets;
+use crate::line_provider::{LineAssets, SharedTextProvider};
 use crate::prelude::*;
 use crate::UnderlyingYarnLine;
 use anyhow::{anyhow, bail};
@@ -20,6 +20,7 @@ pub(crate) use runtime_interaction::DialogueExecutionSystemSet;
 use std::any::TypeId;
 use std::fmt::Debug;
 use yarnspinner::core::Library;
+use yarnspinner::runtime::MemoryVariableStorage;
 
 mod builder;
 mod dialogue_option;
@@ -41,8 +42,7 @@ pub(crate) fn dialogue_plugin(app: &mut App) {
 /// Created by calling either [`YarnProject::create_dialogue_runner`] or [`YarnProject::build_dialogue_runner`].
 #[derive(Debug, Component)]
 pub struct DialogueRunner {
-    pub(crate) dialogue: Dialogue,
-    pub(crate) text_provider: Box<dyn TextProvider>,
+    pub(crate) dialogue: Dialogue<MemoryVariableStorage, SharedTextProvider>,
     asset_providers: HashMap<TypeId, Box<dyn AssetProvider>>,
     pub(crate) will_continue_in_next_update: bool,
     pub(crate) last_selected_option: Option<OptionId>,
@@ -190,13 +190,13 @@ impl DialogueRunner {
 
     /// Returns a shallow clone of the registered [`VariableStorage`]. The storage used can be overridden by calling [`DialogueRunnerBuilder::with_variable_storage`].
     #[must_use]
-    pub fn variable_storage(&self) -> &dyn VariableStorage {
+    pub fn variable_storage(&self) -> &MemoryVariableStorage {
         self.dialogue.variable_storage()
     }
 
     /// Returns a shallow mutable clone of the registered [`VariableStorage`]. The storage used can be overridden by calling [`DialogueRunnerBuilder::with_variable_storage`].
     #[must_use]
-    pub fn variable_storage_mut(&mut self) -> &mut dyn VariableStorage {
+    pub fn variable_storage_mut(&mut self) -> &mut MemoryVariableStorage {
         self.dialogue.variable_storage_mut()
     }
 
@@ -311,13 +311,13 @@ impl DialogueRunner {
 
     /// Returns a struct that can be used to access a portion of the underlying [`Dialogue`]. This is advanced functionality.
     #[must_use]
-    pub fn inner(&self) -> InnerDialogue {
+    pub fn inner(&self) -> InnerDialogue<MemoryVariableStorage, SharedTextProvider> {
         InnerDialogue(&self.dialogue)
     }
 
     /// Mutably returns a struct that can be used to access a portion of the underlying [`Dialogue`]. This is advanced functionality.
     #[must_use]
-    pub fn inner_mut(&mut self) -> InnerDialogueMut {
+    pub fn inner_mut(&mut self) -> InnerDialogueMut<MemoryVariableStorage, SharedTextProvider> {
         InnerDialogueMut(&mut self.dialogue)
     }
 

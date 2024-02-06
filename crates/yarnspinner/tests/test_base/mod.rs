@@ -45,10 +45,8 @@ pub fn init_logger(runtime_errors_cause_failure: Arc<AtomicBool>) -> Result<(), 
 
 #[derive(Debug)]
 pub struct TestBase {
-    pub dialogue: Dialogue,
+    pub dialogue: Dialogue<MemoryVariableStorage, SharedTextProvider>,
     pub test_plan: Option<TestPlan>,
-    pub string_table: SharedTextProvider,
-    pub variable_storage: MemoryVariableStorage,
     runtime_errors_cause_failure: Arc<AtomicBool>,
 }
 
@@ -61,10 +59,7 @@ impl Default for TestBase {
         let variable_storage = MemoryVariableStorage::new();
         let string_table = SharedTextProvider::new(StringTableTextProvider::new());
 
-        let mut dialogue = Dialogue::new(
-            Box::new(variable_storage.clone()),
-            Box::new(string_table.clone()),
-        );
+        let mut dialogue = Dialogue::new(variable_storage.clone(), string_table.clone());
         dialogue
             .library_mut()
             .add_function("assert", |value: YarnValue| {
@@ -76,8 +71,6 @@ impl Default for TestBase {
         Self {
             dialogue,
             runtime_errors_cause_failure,
-            variable_storage,
-            string_table,
             test_plan: Default::default(),
         }
     }
@@ -137,7 +130,9 @@ impl TestBase {
         let mut string_table_provider = StringTableTextProvider::new();
         string_table_provider.extend_base_language(string_table.clone());
         string_table_provider.extend_translation("en-US", string_table);
-        self.string_table.replace(string_table_provider);
+        self.dialogue
+            .text_provider_mut()
+            .replace(string_table_provider);
         self.dialogue.set_language_code(Language::from("en-US"));
         self
     }

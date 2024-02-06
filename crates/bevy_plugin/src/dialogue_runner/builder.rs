@@ -12,8 +12,8 @@ pub(crate) fn dialogue_runner_builder_plugin(_app: &mut App) {}
 
 /// A builder for [`DialogueRunner`]. This is instantiated for you by calling [`YarnProject::build_dialogue_runner`].
 pub struct DialogueRunnerBuilder {
-    variable_storage: Box<dyn VariableStorage>,
-    text_provider: SharedTextProvider,
+    variable_storage: dyn VariableStorage,
+    text_provider: dyn TextProvider,
     asset_providers: HashMap<TypeId, Box<dyn AssetProvider>>,
     library: YarnLibrary,
     commands: YarnCommands,
@@ -56,7 +56,7 @@ impl DialogueRunnerBuilder {
 
     /// Replaces the [`VariableStorage`] used by the [`DialogueRunner`]. By default, this is a [`MemoryVariableStorage`].
     #[must_use]
-    pub fn with_variable_storage(mut self, storage: Box<dyn VariableStorage>) -> Self {
+    pub fn with_variable_storage(mut self, storage: dyn VariableStorage) -> Self {
         self.variable_storage = storage;
         self
     }
@@ -85,9 +85,7 @@ impl DialogueRunnerBuilder {
 
     /// Builds the [`DialogueRunner`].
     pub fn try_build(mut self) -> Result<DialogueRunner> {
-        let text_provider = Box::new(self.text_provider);
-
-        let mut dialogue = Dialogue::new(self.variable_storage, text_provider.clone());
+        let mut dialogue = Dialogue::new(self.variable_storage, self.text_provider.clone());
         dialogue
             .set_line_hints_enabled(true)
             .library_mut()
@@ -112,7 +110,6 @@ impl DialogueRunnerBuilder {
 
         let mut dialogue_runner = DialogueRunner {
             dialogue,
-            text_provider,
             popped_line_hints,
             run_selected_options_as_lines: false,
             asset_providers: self.asset_providers,

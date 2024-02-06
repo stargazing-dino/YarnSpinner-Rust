@@ -11,8 +11,12 @@ use yarnspinner_core::prelude::*;
 ///
 /// The main functions of interest are [`Dialogue::continue_`] and [`Dialogue::set_selected_option`].
 #[derive(Debug)]
-pub struct Dialogue {
-    vm: VirtualMachine,
+pub struct Dialogue<VS, TP>
+where
+    VS: VariableStorage,
+    TP: TextProvider,
+{
+    vm: VirtualMachine<VS, TP>,
     language_code: Option<Language>,
 }
 
@@ -47,18 +51,20 @@ pub enum DialogueError {
     VariableStorageError(#[from] VariableStorageError),
 }
 
-impl Dialogue {
+impl<VS, TP> Dialogue<VS, TP>
+where
+    VS: VariableStorage + 'static,
+    TP: TextProvider,
+{
     /// Creates a new [`Dialogue`] instance with the given [`VariableStorage`] and [`TextProvider`].
     /// - The [`TextProvider`] is used to retrieve the text of lines and options.
     /// - The [`VariableStorage`] is used to store and retrieve variables.
     ///
     /// If you don't need any fancy behavior, you can use [`StringTableTextProvider`] and [`MemoryVariableStorage`].
     #[must_use]
-    pub fn new(
-        variable_storage: Box<dyn VariableStorage>,
-        text_provider: Box<dyn TextProvider>,
-    ) -> Self {
+    pub fn new(variable_storage: VS, text_provider: TP) -> Self {
         let mut library = Library::standard_library();
+
         library
             .add_function("visited", visited(variable_storage.clone()))
             .add_function("visited_count", visited_count(variable_storage.clone()));
@@ -76,7 +82,9 @@ impl Dialogue {
     }
 }
 
-fn visited(storage: Box<dyn VariableStorage>) -> yarn_fn_type! { impl Fn(String) -> bool } {
+fn visited<VS: VariableStorage + 'static>(
+    storage: VS,
+) -> yarn_fn_type! { impl Fn(String) -> bool } {
     move |node: String| -> bool {
         let name = Library::generate_unique_visited_variable_for_node(&node);
         if let Ok(YarnValue::Number(count)) = storage.get(&name) {
@@ -87,7 +95,7 @@ fn visited(storage: Box<dyn VariableStorage>) -> yarn_fn_type! { impl Fn(String)
     }
 }
 
-fn visited_count(storage: Box<dyn VariableStorage>) -> yarn_fn_type! { impl Fn(String) -> f32 } {
+fn visited_count<VS: VariableStorage>(storage: VS) -> yarn_fn_type! { impl Fn(String) -> f32 } {
     move |node: String| {
         let name = Library::generate_unique_visited_variable_for_node(&node);
         if let Ok(YarnValue::Number(count)) = storage.get(&name) {
@@ -98,7 +106,11 @@ fn visited_count(storage: Box<dyn VariableStorage>) -> yarn_fn_type! { impl Fn(S
     }
 }
 
-impl Iterator for Dialogue {
+impl<VS, TP> Iterator for Dialogue<VS, TP>
+where
+    VS: VariableStorage,
+    TP: TextProvider,
+{
     type Item = Vec<DialogueEvent>;
 
     /// Panicking version of [`Dialogue::continue_`].
@@ -109,7 +121,11 @@ impl Iterator for Dialogue {
 }
 
 // Accessors
-impl Dialogue {
+impl<VS, TP> Dialogue<VS, TP>
+where
+    VS: VariableStorage,
+    TP: TextProvider,
+{
     /// The [`Dialogue`]'s locale, as an IETF BCP 47 code.
     ///
     /// This code is used to determine how the `plural` and `ordinal`
@@ -167,28 +183,32 @@ impl Dialogue {
     }
 
     /// Gets the currently registered [`TextProvider`].
-    pub fn text_provider(&self) -> &dyn TextProvider {
+    pub fn text_provider(&self) -> &TP {
         self.vm.text_provider()
     }
 
     /// Mutable gets the currently registered [`TextProvider`].
-    pub fn text_provider_mut(&mut self) -> &mut dyn TextProvider {
+    pub fn text_provider_mut(&mut self) -> &mut TP {
         self.vm.text_provider_mut()
     }
 
     /// Gets the currently registered [`VariableStorage`].
-    pub fn variable_storage(&self) -> &dyn VariableStorage {
+    pub fn variable_storage(&self) -> &VS {
         self.vm.variable_storage()
     }
 
     /// Mutable gets the currently registered [`VariableStorage`].
-    pub fn variable_storage_mut(&mut self) -> &mut dyn VariableStorage {
+    pub fn variable_storage_mut(&mut self) -> &mut VS {
         self.vm.variable_storage_mut()
     }
 }
 
 // VM proxy
-impl Dialogue {
+impl<VS, TP> Dialogue<VS, TP>
+where
+    VS: VariableStorage,
+    TP: TextProvider,
+{
     /// Starts, or continues, execution of the current program.
     ///
     /// Calling this method returns a batch of [`DialogueEvent`]s that should be handled by the caller before calling [`Dialogue::continue_`] again.
@@ -391,8 +411,8 @@ mod tests {
 
     #[test]
     fn is_send_sync() {
-        let variable_storage = Box::new(MemoryVariableStorage::new());
-        let text_provider = Box::new(StringTableTextProvider::new());
+        let variable_storage = MemoryVariableStorage::new();
+        let text_provider = StringTableTextProvider::new();
         let dialogue = Dialogue::new(variable_storage, text_provider);
         accept_send_sync(dialogue);
     }

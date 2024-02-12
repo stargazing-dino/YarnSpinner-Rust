@@ -226,10 +226,23 @@ impl Dialogue {
         self
     }
 
-    /// Merges the currently set [`Program`] with the given one. If there is no program set, the given one is set.
+    /// Combines the currently set [`Program`] with the given one. If there is no program set, the given one is set.
     pub fn add_program(&mut self, program: Program) -> &mut Self {
         if let Some(existing_program) = self.vm.program.as_mut() {
             *existing_program = Program::combine(vec![existing_program.clone(), program]).unwrap();
+        } else {
+            self.vm.program.replace(program);
+            self.vm.reset_state();
+        }
+
+        self
+    }
+
+    /// Merges and overwrites the given [`Program`] with the currently set one. If there is no program set, the given one is set.
+    pub fn merge_program(&mut self, program: Program) -> &mut Self {
+        if let Some(existing_program) = self.vm.program.as_mut() {
+            *existing_program =
+                Program::merge_overwrite(vec![program, existing_program.clone()]).unwrap();
         } else {
             self.vm.program.replace(program);
             self.vm.reset_state();

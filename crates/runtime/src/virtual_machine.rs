@@ -501,23 +501,20 @@ impl VirtualMachine {
                             // value may be found in the program. (If it's
                             // not, then the variable's value is undefined,
                             // which isn't allowed.)
-                            let initial_value = self
+                            Ok(self
                                 .program
                                 .as_ref()
                                 .unwrap()
                                 .initial_values
                                 .get(&variable_name)
                                 .unwrap_or_else(|| panic!("The loaded program does not contain an initial value for the variable {variable_name}"))
-                                .clone();
-
-                            // Store the initial value in the variable_storage
-                            self.variable_storage.set(variable_name.clone(), initial_value.clone().into())?;
-
-                            Ok(initial_value.into())
+                                .clone().into())
                         } else {
                             Err(e)
                         }
                     })?;
+                self.variable_storage
+                    .set(variable_name, loaded_value.clone().into())?;
                 self.state.push(loaded_value);
                 self.state.program_counter += 1;
             }

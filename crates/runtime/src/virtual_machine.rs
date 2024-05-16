@@ -514,7 +514,7 @@ impl VirtualMachine {
                         }
                     })?;
                 self.variable_storage
-                    .set(variable_name, loaded_value.clone().into())?;
+                    .set(variable_name, loaded_value.clone())?;
                 self.state.push(loaded_value);
                 self.state.program_counter += 1;
             }

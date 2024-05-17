@@ -413,8 +413,10 @@ fn test_initial_values() -> anyhow::Result<()> {
         .declare_variable(
             Declaration::new("$external_str", Type::String).with_default_value("Hello"),
         )
-        .declare_variable(Declaration::new("$external_int", Type::Boolean).with_default_value(true))
-        .declare_variable(Declaration::new("$external_bool", Type::Number).with_default_value(42))
+        .declare_variable(Declaration::new("$external_int", Type::Number).with_default_value(42))
+        .declare_variable(
+            Declaration::new("$external_bool", Type::Boolean).with_default_value(true),
+        )
         .compile()?;
 
     let mut variable_storage = test_base.variable_storage.clone_shallow();

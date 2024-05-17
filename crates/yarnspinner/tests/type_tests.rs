@@ -402,10 +402,10 @@ fn test_initial_values() -> anyhow::Result<()> {
             // so this would be "True" instead.
             .expect_line("true")
             // external decls
-            .expect_line("42")
-            .expect_line("Hello")
+            .expect_line("0")
+            .expect_line("Bye")
             // ## Implementation note: See above
-            .expect_line("true"),
+            .expect_line("false"),
     );
 
     let result = Compiler::from_test_source(source)

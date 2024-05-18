@@ -257,6 +257,21 @@ impl Dialogue {
         self
     }
 
+    /// Merges the given [`Program`] into the currently set one. If there is no program set, the given one is set.
+    pub fn add_program_overwrite(&mut self, program: Program) -> &mut Self {
+        if let Some(existing_program) = self.vm.program.as_mut() {
+            *existing_program =
+                Program::combine_overwrite(vec![existing_program.clone(), program.clone()])
+                    .unwrap();
+        } else {
+            self.vm.program.replace(program.clone());
+            self.vm.reset_state();
+        }
+        self.extend_variable_storage_from(&program);
+
+        self
+    }
+
     /// Prepares the [`Dialogue`] that the user intends to start running a node.
     ///
     /// After this method is called, you call [`Dialogue::next`] to start executing it.

@@ -240,7 +240,6 @@ impl Dialogue {
         self.vm.program.replace(program.clone());
         self.vm.reset_state();
         self.extend_variable_storage_from(&program);
-
         self
     }
 
@@ -268,6 +267,7 @@ impl Dialogue {
             self.vm.reset_state();
             self.extend_variable_storage_from(&program);
         }
+        self.extend_variable_storage_from(&program);
 
         self
     }

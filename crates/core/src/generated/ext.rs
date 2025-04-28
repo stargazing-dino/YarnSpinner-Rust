@@ -134,6 +134,26 @@ impl Program {
         }
         Some(output)
     }
+
+    /// Merges multiple Programs together, overwriting nodes with the same name.
+    ///
+    /// The new program will contain every node from every input program,
+    /// with nodes in later programs overwriting those with the same name in earlier ones.
+    /// Returns [`None`] if the input is empty.
+    pub fn combine_overwrite(programs: Vec<Program>) -> Option<Self> {
+        if programs.is_empty() {
+            return None;
+        }
+        let mut output = Program::default();
+        for program in programs {
+            for (node_name, node) in program.nodes {
+                output.nodes.insert(node_name, node);
+            }
+            output.initial_values.extend(program.initial_values);
+        }
+
+        Some(output)
+    }
 }
 
 impl Instruction {

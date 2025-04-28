@@ -75,6 +75,51 @@ fn test_merging_nodes() {
 }
 
 #[test]
+fn test_add_program_overwrite() {
+    let mut dialogue = Dialogue::new(
+        Box::new(MemoryVariableStorage::new()),
+        Box::new(StringTableTextProvider::new()),
+    );
+
+    // Create two programs with nodes that have the same name
+    let program1 = Program {
+        nodes: HashMap::from([(
+            "Node1".to_string(),
+            Node {
+                name: "Node1".to_string(),
+                tags: vec!["tag1".to_string()],
+                ..Default::default()
+            },
+        )]),
+        ..Default::default()
+    };
+
+    let program2 = Program {
+        nodes: HashMap::from([(
+            "Node1".to_string(),
+            Node {
+                name: "Node1".to_string(),
+                tags: vec!["tag2".to_string()],
+                ..Default::default()
+            },
+        )]),
+        ..Default::default()
+    };
+
+    // Add the first program
+    dialogue.add_program(program1.clone());
+
+    // Verify the node from the first program exists
+    assert_eq!(dialogue.get_tags_for_node("Node1").unwrap(), vec!["tag1"]);
+
+    // Add the second program, overwriting the node from the first program
+    dialogue.add_program_overwrite(program2.clone());
+
+    // Verify the node from the second program exists and has overwritten the node from the first program
+    assert_eq!(dialogue.get_tags_for_node("Node1").unwrap(), vec!["tag2"]);
+}
+
+#[test]
 fn test_end_of_notes_with_options_not_added() {
     let path = test_data_path().join("SkippedOptions.yarn");
     let result = Compiler::default().read_file(path).compile().unwrap();
